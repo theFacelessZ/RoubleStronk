@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "webpack --mode=development --devtool=eval-source-map"
+    "build": "webpack --mode=development --devtool=eval-source-map",
+    "generate-data":  "node ./src/generate_data.js"
   },
   "author": "",
   "license": "ISC",
