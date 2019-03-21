@@ -1,0 +1,21 @@
+{
+  "name": "rouble_stronk",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack --mode=development --devtool=eval-source-map"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.3.0"
+  },
+  "dependencies": {
+    "@amcharts/amcharts4": "^4.2.5",
+    "axios": "^0.18.0",
+    "d3": "^5.9.2",
+    "moment": "^2.24.0"
+  }
+}
