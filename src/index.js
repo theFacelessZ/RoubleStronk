@@ -1,66 +1,56 @@
 import * as am4core from '@amcharts/amcharts4/core';
 import * as am4charts from '@amcharts/amcharts4/charts';
-import * as themes from '@amcharts/amcharts4/themes/dataviz.js';
+import * as DataProcessor from './data_processor';
+import * as Chart from './chart';
 
 
-let chart = am4core.create('chart', am4charts.XYChart);
-chart.data = require('../data');
+class DenominationFilter extends DataProcessor.Filter {
+    process(input) {
+        let date = new Date(input.Date),
+            year = date.getFullYear(),
+            month = date.getMonth(),
+            multiplier = 10;
 
-chart.data.forEach(function (item) {
-    let date = new Date(item.Date),
-        year = date.getFullYear(),
-        month = date.getMonth(),
-        m = 1;
+        // The first denomination of 2000s.
+        if (year >= 2000) {
+            multiplier *= 1000;
+        }
 
-    // The first denomination of 2000s.
-    if (year >= 2000) {
-        m = 1000;
+        // The second denomination of 2016th.
+        if (year > 2016 || (year === 2016 && month >= 6)) {
+            multiplier *= 10000;
+        }
+
+        input.Cur_OfficialRate *= multiplier;
     }
+}
 
-    // The second denomination of 2016th.
-    if (year > 2016 || (year === 2016 && month >= 6)) {
-        m *= 10000;
-    }
+// Process data input.
+let data = require('../data'),
+    processor = new DataProcessor.DataProcessor(),
+    chart = new Chart.DateChart('chart', am4charts.XYChart);
 
-    item.Cur_OfficialRate *= m;
+// Compensate denomination difference.
+processor.addFilter(new DenominationFilter());
+
+// Assign processed data to the chart.
+chart.assignData('course', processor.process(data), {
+    dateX: 'Date',
+    valueY: 'Cur_OfficialRate'
 });
 
-let dateAxis = chart.xAxes.push(
-    new am4charts.DateAxis()
-);
+chart.addRangesX({
+    date: new Date(2000, 1, 1),
+    label: {
+        text: '2000 denomination',
+        inside: true
+    }
+});
 
-chart.yAxes.push(
-    new am4charts.ValueAxis()
-);
-
-let series = chart.series.push(
-    new am4charts.LineSeries()
-);
-
-
-series.dataFields.valueY = 'Cur_OfficialRate';
-series.dataFields.dateX = 'Date';
-series.strokeWidth = 3;
-series.minBulletDistance = 5;
-series.tooltipText = '{valueY}';
-
-chart.scrollbarX = new am4charts.XYChartScrollbar();
-chart.scrollbarX.series.push(series);
-
-chart.cursor = new am4charts.XYCursor();
-chart.cursor.xAxis = dateAxis;
-chart.cursor.snapToSeries = series;
-
-// Denomination markers.
-let denomination_a = dateAxis.axisRanges.create();
-denomination_a.date = new Date(2000, 1, 1);
-denomination_a.label.text = '2000 denimination';
-denomination_a.label.inside = true;
-denomination_a.grid.strokeWidth = 5;
-
-let denomination_b = dateAxis.axisRanges.create();
-denomination_b.date = new Date(2016, 7, 1);
-denomination_b.label.text = '2016 denomination';
-denomination_b.label.inside = true;
-denomination_b.grid.strokeWidth = 5;
-
+chart.addRangesX({
+    date: new Date(2016, 7, 1),
+    label: {
+        text: '2016 denomination',
+        inside: true
+    }
+});
