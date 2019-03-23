@@ -13,7 +13,7 @@ class YearFilter extends DataProcessor.Filter {
         this.month = month;
     }
 
-    process(input, index, dataset) {
+    process(input, dataset) {
         let date = input[this.field];
 
         if (!(date instanceof Date)) {
@@ -34,7 +34,7 @@ class DenominationFilter extends DataProcessor.Filter {
         this.monthShift = monthShift;
     }
 
-    process(input) {
+    process(input, dataset) {
         let date = new Date(input.Date),
             year = date.getFullYear(),
             month = date.getMonth(),
@@ -63,8 +63,8 @@ class DifferenceFilter extends DataProcessor.Filter {
         this.resultField = resultField;
     }
 
-    process(input, index, dataset) {
-        if (!index) {
+    process(input, dataset) {
+        if (!dataset.processedIterator.current()) {
             this.startValue = input[this.field];
         }
 
@@ -80,7 +80,8 @@ let data = require('../data'),
     processorPayment = new DataProcessor.DataProcessor(),
     chart_diff = new Chart.DateChart('chart_diff', am4charts.XYChart),
     chart_course = new Chart.DateChart('chart_course', am4charts.XYChart),
-    chart_payment = new Chart.DateChart('chart_payment', am4charts.XYChart);
+    chart_payment = new Chart.DateChart('chart_payment', am4charts.XYChart),
+    chart_payment_d = new Chart.DateChart('chart_payment_d', am4charts.XYChart);
 
 // Compensate denomination difference.
 processor.addFilter(new DenominationFilter('Cur_OfficialRate'));
@@ -93,6 +94,11 @@ processorPayment.addFilter(new DifferenceFilter('Payment'));
 // Process the data.
 data = processor.process(data);
 dataPayment = processorPayment.process(dataPayment);
+
+let dollarMonth = processor.process(require('../data_month'));
+for (let i = 0; i < dataPayment.length; i++) {
+    dataPayment[i]['DollarValue'] = dataPayment[i]['Payment'] / dollarMonth[i]['Cur_OfficialRate'];
+}
 
 // Assign processed data to the chart.
 chart_diff.assignData('course', data, {
@@ -115,7 +121,12 @@ chart_payment.assignData('payment', dataPayment, {
     valueY: 'Payment'
 });
 
-[chart_diff, chart_payment, chart_course].forEach((chart) => {
+chart_payment_d.assignData('payment_d', dataPayment, {
+    dateX: 'Date',
+    valueY: 'DollarValue'
+});
+
+[chart_diff, chart_payment, chart_course, chart_payment_d].forEach((chart) => {
     chart.addRangesX({
         date: new Date(2000, 1, 1),
         label: {

@@ -17,11 +17,11 @@ class DataProcessor {
         filter.processor = this;
     }
 
-    applyFilters(data, index, dataset) {
+    applyFilters(item, dataset) {
         let result;
 
         this.filters.find(function (filter) {
-            result = filter.process(data, index, dataset);
+            result = filter.process(item, dataset);
 
             return result === false;
         });
@@ -36,27 +36,87 @@ class DataProcessor {
             return data;
         }
 
-        let result = [];
+        let result = [],
+            iterator = new FilterIterator(data),
+            iteratorResult = new FilterIterator(result),
+            dataset = new FilterData(data, result, iterator, iteratorResult);
 
-        this.data = data;
 
-        for (var index in data) {
-            if (!data.hasOwnProperty(index)) {
-                continue;
-            }
+        while (!iterator.isComplete()) {
+            let index = iterator.next(),
+                item = Object.assign({}, data[index]),
+                shouldProcess;
 
-            let item = Object.assign({}, data[index]),
-                shouldProcess = this.applyFilters(item, result.length, result);
+            shouldProcess = this.applyFilters(item, dataset);
 
             // Ignore the record if false flag has been returned.
             if (shouldProcess === false) {
                 continue;
             }
 
+            // Include the resulting item in the dataset.
             result.push(item);
+
+            // Shift the result iterator.
+            iteratorResult.next();
         }
 
         return result;
+    }
+
+}
+
+class FilterIterator {
+
+    get max() {
+        if (Array.isArray(this.source[0])) {
+            return this.source[0].length;
+        }
+
+        return this.source.length;
+    }
+
+    constructor(source) {
+        this.source = source;
+
+        this.pointer = 0;
+        this.min = 0;
+    }
+
+    current() {
+        return this.pointer;
+    }
+
+    next() {
+        return this.pointer++;
+    }
+
+    previous() {
+        return this.pointer--;
+    }
+
+    isComplete() {
+        return this.pointer === this.max;
+    }
+
+}
+
+class FilterData {
+
+    /**
+     * Filter data constructor.
+     *
+     * @param {*} source
+     * @param {*} processed
+     * @param {FilterIterator} sourceIterator
+     * @param {FilterIterator} processedIterator
+     */
+    constructor(source, processed, sourceIterator, processedIterator) {
+        this.source = source;
+        this.processed = processed;
+
+        this.sourceIterator = sourceIterator;
+        this.processedIterator = processedIterator;
     }
 
 }
@@ -67,12 +127,11 @@ class Filter {
      * Performs data filtering.
      *
      * @abstract
-     * @param input
-     * @param index
-     * @param dataset
+     * @param {Object} input
+     * @param {FilterData} dataset
      * @return {*}
      */
-    process(input, index, dataset) {
+    process(input, dataset) {
         throw 'Not implemented';
     }
 
