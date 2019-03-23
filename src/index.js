@@ -140,7 +140,7 @@ chart_diff_accum.assignData('diff', dollarMonth, {
     valueY: 'Accum'
 });
 
-[chart_diff, chart_payment, chart_course, chart_payment_d].forEach((chart) => {
+[chart_diff, chart_payment, chart_course, chart_payment_d, chart_diff_accum].forEach((chart) => {
     chart.addRangesX({
         date: new Date(2000, 1, 1),
         label: {
