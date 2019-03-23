@@ -53,7 +53,7 @@ export class DateChart {
             seriesList = Object.values(this.series);
 
         series.strokeWidth = 5;
-        series.tooltipText = '{valueY}';
+        series.tooltipText = seriesId + ' {valueY}';
 
         this.chart.series.push(series);
         this.chart.cursor.snapToSeries = seriesList[0];
