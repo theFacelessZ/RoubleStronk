@@ -81,7 +81,8 @@ let data = require('../data'),
     chart_diff = new Chart.DateChart('chart_diff', am4charts.XYChart),
     chart_course = new Chart.DateChart('chart_course', am4charts.XYChart),
     chart_payment = new Chart.DateChart('chart_payment', am4charts.XYChart),
-    chart_payment_d = new Chart.DateChart('chart_payment_d', am4charts.XYChart);
+    chart_payment_d = new Chart.DateChart('chart_payment_d', am4charts.XYChart),
+    chart_diff_accum = new Chart.DateChart('chart_diff_accum', am4charts.XYChart);
 
 // Compensate denomination difference.
 processor.addFilter(new DenominationFilter('Cur_OfficialRate'));
@@ -98,6 +99,14 @@ dataPayment = processorPayment.process(dataPayment);
 let dollarMonth = processor.process(require('../data_month'));
 for (let i = 0; i < dataPayment.length; i++) {
     dataPayment[i]['DollarValue'] = dataPayment[i]['Payment'] / dollarMonth[i]['Cur_OfficialRate'];
+}
+
+for (let i = 0; i < dollarMonth.length; i++) {
+    if (typeof dataPayment[i] === 'undefined') {
+        break;
+    }
+
+    dollarMonth[i]['Accum'] = dollarMonth[i]['Diff'] - dataPayment[i]['Diff'];
 }
 
 // Assign processed data to the chart.
@@ -124,6 +133,11 @@ chart_payment.assignData('payment', dataPayment, {
 chart_payment_d.assignData('payment_d', dataPayment, {
     dateX: 'Date',
     valueY: 'DollarValue'
+});
+
+chart_diff_accum.assignData('diff', dollarMonth, {
+    dateX: 'Date',
+    valueY: 'Accum'
 });
 
 [chart_diff, chart_payment, chart_course, chart_payment_d].forEach((chart) => {
