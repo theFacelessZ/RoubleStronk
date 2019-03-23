@@ -13,14 +13,20 @@ class DataProcessor {
         }
 
         this.filters.push(filter);
+
+        filter.processor = this;
     }
 
-    applyFilters(data) {
-        this.filters.forEach(function (filter) {
-            filter.process(data);
+    applyFilters(data, index, dataset) {
+        let result;
+
+        this.filters.find(function (filter) {
+            result = filter.process(data, index, dataset);
+
+            return result === false;
         });
 
-        return this;
+        return result;
     }
 
     process(data) {
@@ -30,15 +36,27 @@ class DataProcessor {
             return data;
         }
 
+        let result = [];
+
+        this.data = data;
+
         for (var index in data) {
             if (!data.hasOwnProperty(index)) {
                 continue;
             }
 
-            this.applyFilters(data[index]);
+            let item = Object.assign({}, data[index]),
+                shouldProcess = this.applyFilters(item, result.length, result);
+
+            // Ignore the record if false flag has been returned.
+            if (shouldProcess === false) {
+                continue;
+            }
+
+            result.push(item);
         }
 
-        return data;
+        return result;
     }
 
 }
@@ -50,9 +68,11 @@ class Filter {
      *
      * @abstract
      * @param input
+     * @param index
+     * @param dataset
      * @return {*}
      */
-    process(input) {
+    process(input, index, dataset) {
         throw 'Not implemented';
     }
 

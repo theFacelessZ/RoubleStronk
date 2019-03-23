@@ -5,11 +5,13 @@
   "main": "index.js",
   "scripts": {
     "build": "webpack --mode=development --devtool=eval-source-map",
-    "generate-data":  "node ./src/generate_data.js"
+    "gen-course": "node ./src/generate_data.js",
+    "gen-payment": "node ./src/belstat_payment.js"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "cheerio": "^1.0.0-rc.2",
     "webpack": "^4.29.6",
     "webpack-cli": "^3.3.0"
   },

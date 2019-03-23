@@ -7,7 +7,7 @@ let api = new Exchange.ExchangeAPI(),
     date = moment('1995-6');
 
 async function fetchRates (date, resolution = 'year') {
-    let rates, dateString;
+    let rates, dateString, i = 0;
 
     do {
         dateString = date.format();
@@ -24,9 +24,11 @@ async function fetchRates (date, resolution = 'year') {
         result.push(rates.data);
 
         date.add(1, resolution);
+
+        console.log(++i + ' ' + resolution);
     } while (rates && rates instanceof Exchange.Rates);
 }
 
-fetchRates(date, 'month').then(() => {
+fetchRates(date, 'day').then(() => {
     fs.writeFile('./data.json', JSON.stringify(result));
 });

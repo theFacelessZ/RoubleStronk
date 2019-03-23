@@ -4,12 +4,41 @@ import * as DataProcessor from './data_processor';
 import * as Chart from './chart';
 
 
+class YearFilter extends DataProcessor.Filter {
+    constructor(field, year, month = 1) {
+        super();
+
+        this.field = field;
+        this.year = year;
+        this.month = month;
+    }
+
+    process(input, index, dataset) {
+        let date = input[this.field];
+
+        if (!(date instanceof Date)) {
+            date = new Date(date);
+        }
+
+        return date.getFullYear() > this.year ||
+            (date.getFullYear() === this.year && date.getMonth() >= this.month - 1);
+    }
+}
+
 class DenominationFilter extends DataProcessor.Filter {
+
+    constructor(field, monthShift = 0) {
+        super();
+
+        this.field = field;
+        this.monthShift = monthShift;
+    }
+
     process(input) {
         let date = new Date(input.Date),
             year = date.getFullYear(),
             month = date.getMonth(),
-            multiplier = 10;
+            multiplier = 1;
 
         // The first denomination of 2000s.
         if (year >= 2000) {
@@ -17,40 +46,90 @@ class DenominationFilter extends DataProcessor.Filter {
         }
 
         // The second denomination of 2016th.
-        if (year > 2016 || (year === 2016 && month >= 6)) {
+        if (year > 2016 || (year === 2016 && month >= 6 + this.monthShift)) {
             multiplier *= 10000;
         }
 
-        input.Cur_OfficialRate *= multiplier;
+        input[this.field] *= multiplier;
     }
+}
+
+class DifferenceFilter extends DataProcessor.Filter {
+
+    constructor(field, resultField = 'Diff') {
+        super();
+
+        this.field = field;
+        this.resultField = resultField;
+    }
+
+    process(input, index, dataset) {
+        if (!index) {
+            this.startValue = input[this.field];
+        }
+
+        input[this.resultField] = Math.log(input[this.field]) / Math.log(this.startValue);
+    }
+
 }
 
 // Process data input.
 let data = require('../data'),
+    dataPayment = require('../data_payment'),
     processor = new DataProcessor.DataProcessor(),
-    chart = new Chart.DateChart('chart', am4charts.XYChart);
+    processorPayment = new DataProcessor.DataProcessor(),
+    chart_diff = new Chart.DateChart('chart_diff', am4charts.XYChart),
+    chart_course = new Chart.DateChart('chart_course', am4charts.XYChart),
+    chart_payment = new Chart.DateChart('chart_payment', am4charts.XYChart);
 
 // Compensate denomination difference.
-processor.addFilter(new DenominationFilter());
+processor.addFilter(new DenominationFilter('Cur_OfficialRate'));
+processorPayment.addFilter(new DenominationFilter('Payment', -6));
+processorPayment.addFilter(new YearFilter('Date', 1995, 6));
+
+processor.addFilter(new DifferenceFilter('Cur_OfficialRate'));
+processorPayment.addFilter(new DifferenceFilter('Payment'));
+
+// Process the data.
+data = processor.process(data);
+dataPayment = processorPayment.process(dataPayment);
 
 // Assign processed data to the chart.
-chart.assignData('course', processor.process(data), {
+chart_diff.assignData('course', data, {
+    dateX: 'Date',
+    valueY: 'Diff'
+});
+
+chart_diff.assignData('payment', dataPayment, {
+    dateX: 'Date',
+    valueY: 'Diff'
+});
+
+chart_course.assignData('course', data, {
     dateX: 'Date',
     valueY: 'Cur_OfficialRate'
 });
 
-chart.addRangesX({
-    date: new Date(2000, 1, 1),
-    label: {
-        text: '2000 denomination',
-        inside: true
-    }
+chart_payment.assignData('payment', dataPayment, {
+    dateX: 'Date',
+    valueY: 'Payment'
 });
 
-chart.addRangesX({
-    date: new Date(2016, 7, 1),
-    label: {
-        text: '2016 denomination',
-        inside: true
-    }
+[chart_diff, chart_payment, chart_course].forEach((chart) => {
+    chart.addRangesX({
+        date: new Date(2000, 1, 1),
+        label: {
+            text: '2000 denomination',
+            inside: true
+        }
+    });
+
+    chart.addRangesX({
+        date: new Date(2016, 7, 1),
+        label: {
+            text: '2016 denomination',
+            inside: true
+        }
+    });
 });
+
